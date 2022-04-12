@@ -1,7 +1,6 @@
-package com.storemart.v3.employeeAPI.repositories;
+package com.storemart.Oauth2authorizationserver.repositories;
 
-import com.storemart.v3.employeeAPI.models.EmployeeLogin;
-import com.storemart.v3.employeeAPI.models.EmployeeProfile;
+import com.storemart.Oauth2authorizationserver.models.employee.EmployeeProfile;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;

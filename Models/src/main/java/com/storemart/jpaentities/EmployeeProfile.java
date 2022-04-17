@@ -58,10 +58,7 @@ public class EmployeeProfile {
     private Set<EmployeeProfile> supervisees = new LinkedHashSet<>();
 
     public boolean equals(EmployeeProfile obj) {
-        //System.out.println("Comparing ids '"+this.id.toString()+"' and '"+obj.getId().toString()+"'");
-        boolean ans = this.id.equals(obj.getId());
-        //System.out.println(ans);
-        return ans;
+        return this.id.equals(obj.getId());
     }
 
     @Override

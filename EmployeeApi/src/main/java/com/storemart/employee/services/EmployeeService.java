@@ -110,10 +110,6 @@ public class EmployeeService {
 
         // Allow edit assigned employee profiles
         if(requesterPermissions.contains("EDIT_ASSIGNED_EMPLOYEE_PROFILES")){
-//            System.out.println("Users' Supervisees: ");
-//            requester.getSupervisees().forEach(supervisee -> {
-//                System.out.println(supervisee.getUsername());
-//            });
             return this.isSupervisor(requester, profileToEdit);
         }
 
@@ -127,8 +123,6 @@ public class EmployeeService {
 
     private boolean isSupervisor(EmployeeProfile supervisor, EmployeeProfile profile) {
         for(EmployeeProfile supervisee : supervisor.getSupervisees()){
-//            System.out.println("Profile: "+profile.toString());
-//            System.out.println("Supervisee: "+supervisee.toString());
             if(supervisee.equals(profile)) return true;
         }
         return false;

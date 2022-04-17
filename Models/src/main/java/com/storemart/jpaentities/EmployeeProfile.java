@@ -58,6 +58,22 @@ public class EmployeeProfile {
     private Set<EmployeeProfile> supervisees = new LinkedHashSet<>();
 
     public boolean equals(EmployeeProfile obj) {
-        return this.id.equals(obj.getId());
+        //System.out.println("Comparing ids '"+this.id.toString()+"' and '"+obj.getId().toString()+"'");
+        boolean ans = this.id.equals(obj.getId());
+        //System.out.println(ans);
+        return ans;
+    }
+
+    @Override
+    public String toString() {
+        return "EmployeeProfile{" +
+                "id=" + id +
+                ", firstName='" + firstName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", username='" + username + '\'' +
+                ", email='" + email + '\'' +
+                ", phoneNumber=" + phoneNumber +
+                ", group=" + group +
+                '}';
     }
 }

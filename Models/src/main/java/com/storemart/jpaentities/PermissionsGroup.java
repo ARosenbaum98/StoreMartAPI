@@ -13,21 +13,25 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
 public class PermissionsGroup {
     @Id
     @Column(name = "id", nullable = false, length = 20)
     private String id;
 
-    @OneToMany(mappedBy = "group")
+    @OneToMany(mappedBy = "group", fetch = FetchType.LAZY)
     @JsonIgnore
     private Set<EmployeeProfile> employeeProfiles = new LinkedHashSet<>();
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name="lookup_employee_group_default_permissions", joinColumns=@JoinColumn(name="group_id"))
     @Column(name="permission_id")
     @JsonIgnore
     private Set<String> employeePermissions = new LinkedHashSet<>();
 
-
+    @Override
+    public String toString() {
+        return "PermissionsGroup{" +
+                "id='" + id + '\'' +
+                '}';
+    }
 }

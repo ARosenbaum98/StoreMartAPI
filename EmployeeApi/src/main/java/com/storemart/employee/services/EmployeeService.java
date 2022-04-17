@@ -5,10 +5,14 @@ import com.storemart.employee.repositories.LoginRepository;
 import com.storemart.exceptions.LoginBadPassword;
 import com.storemart.exceptions.LoginException;
 import com.storemart.exceptions.LoginUserNotFound;
+import com.storemart.exceptions.UserLookupByIdFailed;
 import com.storemart.jpaentities.EmployeeLogin;
 import com.storemart.jpaentities.EmployeeProfile;
 import com.storemart.jpaentities.Permissions;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.BeanWrapper;
+import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -27,22 +31,23 @@ public class EmployeeService {
 
     @Autowired
     public EmployeeService(EmployeeRepository ep, LoginRepository lp){
-        HashSet<String> p_seed = new HashSet<>(ep.findAllPermissionLevels());
-        PERMISSIONS = new Permissions(p_seed);
+        HashSet<String> allPermissions = new HashSet<>(ep.findAllPermissionLevels());
+        PERMISSIONS = new Permissions(allPermissions);
 
         employeeRepository = ep;
         loginRepository = lp;
     }
 
-    public Set<String> allPermissionLevels(){
-        return PERMISSIONS.getList();
-    }
+//    public Set<String> allPermissionLevels(){
+//        return PERMISSIONS.getList();
+//    }
 
     public EmployeeProfile validateUser(EmployeeLogin attempt) throws LoginException{
         EmployeeLogin login = loginRepository.findByUsernameIgnoreCase(attempt.getUsername());
 
         if(login == null){
             throwUserNotFoundError("username", attempt.getUsername());
+            return null;
         }
 
         if(!login.getPassword().equals(attempt.getPassword())){
@@ -78,40 +83,100 @@ public class EmployeeService {
 
         // Allow view assigned employee profiles
         if(userPermissions.contains("VIEW_ASSIGNED_EMPLOYEE_PROFILE")){
-            for(EmployeeProfile supervisee : user.getSupervisees()){
-                if(supervisee.equals(profile)) return true;
-            }
-            return false;
+            return this.isSupervisor(user, profile);
         }
 
-        //TODO Implement store look up
+        // Allow view assigned store look up
         if(userPermissions.contains("VIEW_ASSIGNED_STORE_EMPLOYEES")){
-            //TODO
+            //TODO Implement store look up
         }
 
         return false;
     }
 
-//    public boolean canEditProfile(EmployeeProfile user, EmployeeProfile profile){
-//
-//        Permissions userPermissions = new Permissions(user.getEmployeePermissions(), PERMISSIONS);
-//
-//        // Allow edit all profiles
-//        if(userPermissions.contains("EDIT_ALL_EMPLOYEE_PROFILES")){
-//            return true;
-//        }
-//    }
+    public boolean canEditProfile(EmployeeProfile requester, EmployeeProfile profileToEdit){
 
-    private void throwUserNotFoundError(String field, Object cred){
+        Permissions requesterPermissions = new Permissions(requester.getEmployeePermissions(), PERMISSIONS);
+
+        // Allow edit all profiles
+        if(requesterPermissions.contains("EDIT_ALL_EMPLOYEE_PROFILES")){
+            return true;
+        }
+
+        // Allow edit own profile
+        if(requester.getUsername().equals(profileToEdit.getUsername()) && requester.getId().equals(profileToEdit.getId())){
+            return requesterPermissions.contains("EDIT_OWN_PROFILE");
+        }
+
+        // Allow edit assigned employee profiles
+        if(requesterPermissions.contains("EDIT_ASSIGNED_EMPLOYEE_PROFILES")){
+//            System.out.println("Users' Supervisees: ");
+//            requester.getSupervisees().forEach(supervisee -> {
+//                System.out.println(supervisee.getUsername());
+//            });
+            return this.isSupervisor(requester, profileToEdit);
+        }
+
+        // Allow edit store
+        if(requesterPermissions.contains("EDIT_ASSIGNED_STORE_EMPLOYEE_PROFILES")){
+            //TODO: Store look up system.
+        }
+
+        return false;
+    }
+
+    private boolean isSupervisor(EmployeeProfile supervisor, EmployeeProfile profile) {
+        for(EmployeeProfile supervisee : supervisor.getSupervisees()){
+//            System.out.println("Profile: "+profile.toString());
+//            System.out.println("Supervisee: "+supervisee.toString());
+            if(supervisee.equals(profile)) return true;
+        }
+        return false;
+    }
+
+    private void throwUserNotFoundError(String field, Object cred) throws LoginUserNotFound{
         String msg = "User with "+field+" '"+ cred +"' not located in database";
         log.debug(msg);
         throw new LoginUserNotFound(msg);
     }
 
-    private void throwBadPasswordException(String username){
+    private void throwBadPasswordException(String username) throws LoginBadPassword{
         String msg = "Login attempt from user "+username+" not valid (Bad Password)";
         log.debug(msg);
         throw new LoginBadPassword(msg);
     }
 
+    public EmployeeProfile updateEmployee(EmployeeProfile newDetails) throws UserLookupByIdFailed {
+        Optional<EmployeeProfile> profileOptional = employeeRepository.findById(newDetails.getId());
+        EmployeeProfile profile = null;
+        if(profileOptional.isPresent()){
+            profile = profileOptional.get();
+            copyNonNullProperties(newDetails, profile);
+            employeeRepository.save(profile);
+        }else{
+            String msg = "User with id '"+ newDetails.getId() +"' not found in database";
+            log.debug(msg);
+            throw new UserLookupByIdFailed(msg);
+        }
+        return profile;
+    }
+
+
+    // Lovingly copied from https://stackoverflow.com/a/27862208/16800644
+    private static void copyNonNullProperties(Object from, Object to) {
+        BeanUtils.copyProperties(from, to, getNullPropertyNames(from));
+    }
+
+    private static String[] getNullPropertyNames (Object source) {
+        final BeanWrapper src = new BeanWrapperImpl(source);
+        java.beans.PropertyDescriptor[] pds = src.getPropertyDescriptors();
+
+        Set<String> emptyNames = new HashSet<String>();
+        for(java.beans.PropertyDescriptor pd : pds) {
+            Object srcValue = src.getPropertyValue(pd.getName());
+            if (srcValue == null) emptyNames.add(pd.getName());
+        }
+        String[] result = new String[emptyNames.size()];
+        return emptyNames.toArray(result);
+    }
 }

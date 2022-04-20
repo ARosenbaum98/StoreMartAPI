@@ -73,4 +73,15 @@ public class EmployeeProfile {
                 ", group=" + group +
                 '}';
     }
+
+    public void addEmployeePermissions(String[] permissionsToAdd) {
+        for(String permission : permissionsToAdd){
+            this.addEmployeePermissions(permissionsToAdd);
+        }
+    }
+
+
+    public void addEmployeePermissions(String permissionToAdd) {
+        this.employeePermissions.add(permissionToAdd);
+    }
 }

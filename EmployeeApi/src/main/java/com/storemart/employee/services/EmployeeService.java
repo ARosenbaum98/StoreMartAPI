@@ -98,19 +98,34 @@ public class EmployeeService {
 
         Permissions requesterPermissions = new Permissions(requester.getEmployeePermissions(), PERMISSIONS);
 
+        if(log.isDebugEnabled()) {
+            StringBuilder logstr = new StringBuilder("requester has the following permissions: ");
+            for (String permission : requester.getEmployeePermissions()) {
+                logstr.append(permission).append(", ");
+            }
+            log.debug(logstr.toString());
+        }
+
         // Allow edit all profiles
         if(requesterPermissions.contains("EDIT_ALL_EMPLOYEE_PROFILES")){
+            log.debug("Employ can edit all profiles");
             return true;
         }
 
         // Allow edit own profile
         if(requester.getUsername().equals(profileToEdit.getUsername()) && requester.getId().equals(profileToEdit.getId())){
-            return requesterPermissions.contains("EDIT_OWN_PROFILE");
+            if(requesterPermissions.contains("EDIT_OWN_PROFILE")){
+                log.debug("Employee can edit own profile");
+                return true;
+            }
         }
 
         // Allow edit assigned employee profiles
-        if(requesterPermissions.contains("EDIT_ASSIGNED_EMPLOYEE_PROFILES")){
-            return this.isSupervisor(requester, profileToEdit);
+        if(requesterPermissions.contains("EDIT_ASSIGNED_EMPLOYEE_PROFILES")){;
+            if(this.isSupervisor(requester, profileToEdit)){
+                log.debug("Employee can edit assigned profile");
+                return true;
+            }
         }
 
         // Allow edit store
@@ -123,6 +138,7 @@ public class EmployeeService {
 
     private boolean isSupervisor(EmployeeProfile supervisor, EmployeeProfile profile) {
         for(EmployeeProfile supervisee : supervisor.getSupervisees()){
+            log.debug("Checking equality of profiles "+profile.getId()+" and "+supervisee.getId());
             if(supervisee.equals(profile)) return true;
         }
         return false;

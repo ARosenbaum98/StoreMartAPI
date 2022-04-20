@@ -10,6 +10,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -58,20 +59,61 @@ public class AssociateAPI {
         }
     }
 
-    @PatchMapping(value="/edit/{id}")
+    @PatchMapping(value="/edit/{id}", consumes=MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity editEmployee(@PathVariable(name="id") Long editId,
                                        @RequestHeader String username,
                                        @RequestHeader String password,
-                                       @RequestHeader Long employeeId,
+                                       @RequestHeader(name="employeeId") Long loginId,
                                        @RequestBody EmployeeProfile profileToUpdate){
 
-        EmployeeLogin login = new EmployeeLogin(employeeId, username, password);
+        EmployeeLogin login = new EmployeeLogin(loginId, username, password);
         profileToUpdate.setId(editId);
 
         try {
             EmployeeProfile user = employeeService.validateUser(login);
 
+            if(employeeService.getEmployeeById(editId) == null){
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Employee with id '"+editId+"' not found");
+            }
             if(employeeService.canEditProfile(user, profileToUpdate)){
+                EmployeeProfile newProfile = employeeService.updateEmployee(profileToUpdate);
+                return ResponseEntity.ok().body(newProfile);
+            }
+            String msg = "User '"+login.getUsername()+"' lacks permission to edit employee profile with id '"+String.valueOf(editId)+"'";
+            log.debug(msg);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(msg);
+        }
+        catch(LoginUserNotFound | LoginBadPassword | UserLookupFailed e){
+            log.debug(e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
+
+        } catch(Exception e){
+            log.error(Arrays.toString(e.getStackTrace()));
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PostMapping(value = "/add-permission/{id}/", consumes=MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity addPermission(@PathVariable(name="id") Long editId,
+                                        @RequestHeader String username,
+                                        @RequestHeader String password,
+                                        @RequestHeader(name="employeeId") Long loginId,
+                                        @RequestBody String[] permissionsToAdd){
+
+        EmployeeLogin login = new EmployeeLogin(loginId, username, password);
+
+        try {
+            EmployeeProfile profileToUpdate = employeeService.getEmployeeById(editId);
+            EmployeeProfile user = employeeService.validateUser(login);
+
+            if(profileToUpdate == null){
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Employee with id '"+editId+"' not found");
+            }
+
+            if(employeeService.canEditProfile(user, profileToUpdate)){
+
+                profileToUpdate.addEmployeePermissions(permissionsToAdd);
+
                 EmployeeProfile newProfile = employeeService.updateEmployee(profileToUpdate);
                 return ResponseEntity.ok().body(newProfile);
             }

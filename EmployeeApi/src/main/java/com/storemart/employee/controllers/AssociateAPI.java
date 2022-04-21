@@ -1,6 +1,7 @@
 package com.storemart.employee.controllers;
 
 import com.storemart.employee.services.EmployeeService;
+import com.storemart.exceptions.BadPermission;
 import com.storemart.exceptions.LoginBadPassword;
 import com.storemart.exceptions.LoginUserNotFound;
 import com.storemart.exceptions.UserLookupFailed;
@@ -111,21 +112,29 @@ public class AssociateAPI {
             }
 
             if(employeeService.canEditProfile(user, profileToUpdate)){
-
-                profileToUpdate.addEmployeePermissions(permissionsToAdd);
-
-                EmployeeProfile newProfile = employeeService.updateEmployee(profileToUpdate);
-                return ResponseEntity.ok().body(newProfile);
+                if(employeeService.areValidPermissions(permissionsToAdd)) {
+                    profileToUpdate.addEmployeePermissions(permissionsToAdd);
+                    EmployeeProfile newProfile = employeeService.updateEmployee(profileToUpdate);
+                    return ResponseEntity.ok().body(newProfile);
+                }else{
+                    // This will never run - error will be thrown if condition is not met
+                    // If-else block needed to prevent memory leak
+                    return ResponseEntity.status(HttpStatus.I_AM_A_TEAPOT).body("This should never be seen");
+                }
             }
-            String msg = "User '"+login.getUsername()+"' lacks permission to edit employee profile with id '"+String.valueOf(editId)+"'";
-            log.debug(msg);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(msg);
+            else{
+                String msg = "User '"+login.getUsername()+"' lacks permission to edit employee profile with id '"+String.valueOf(editId)+"'";
+                log.debug(msg);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(msg);
+            }
+
+
         }
-        catch(LoginUserNotFound | LoginBadPassword | UserLookupFailed e){
+        catch(LoginUserNotFound | LoginBadPassword | UserLookupFailed | BadPermission e){
             log.debug(e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
 
-        } catch(Exception e){
+        }catch(Exception e){
             log.error(Arrays.toString(e.getStackTrace()));
             return ResponseEntity.internalServerError().build();
         }

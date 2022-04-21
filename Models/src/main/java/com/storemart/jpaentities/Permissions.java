@@ -44,8 +44,8 @@ public class Permissions {
     }
 
     private void throwBadPermissionException(String s) throws BadPermission {
-        String msg = "Permission "+s+" not recognized. (List of valid permissions: "+ list.toString()+")";
-        log.error(msg);
+        String msg = "Permission "+s+" not recognized.";
+        log.debug(msg+"(List of valid permissions: "+ list.toString()+")");
         throw new BadPermission(msg);
     }
 }

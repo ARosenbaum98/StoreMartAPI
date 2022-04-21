@@ -136,9 +136,55 @@ public class EmployeeService {
         return false;
     }
 
+    public EmployeeProfile updateEmployee(EmployeeProfile newDetails) throws UserLookupByIdFailed {
+        Optional<EmployeeProfile> profileOptional = employeeRepository.findById(newDetails.getId());
+        EmployeeProfile profile = null;
+        if(profileOptional.isPresent()){
+            profile = profileOptional.get();
+            copyNonNullProperties(newDetails, profile);
+            employeeRepository.save(profile);
+        }else{
+            String msg = "User with id '"+ newDetails.getId() +"' not found in database";
+            log.debug(msg);
+            throw new UserLookupByIdFailed(msg);
+        }
+        return profile;
+    }
+
+    public boolean isValidPermission(String permission){
+        return PERMISSIONS.contains(permission);
+    }
+
+    public boolean areValidPermissions(String[] permissions){
+        for(String permission : permissions){
+            if(!PERMISSIONS.contains(permission)) return false;
+        }
+        return true;
+    }
+
+    // Lovingly copied from https://stackoverflow.com/a/27862208/16800644
+    private static void copyNonNullProperties(Object from, Object to) {
+        BeanUtils.copyProperties(from, to, getNullPropertyNames(from));
+    }
+
+    // Lovingly copied from https://stackoverflow.com/a/27862208/16800644
+    private static String[] getNullPropertyNames (Object source) {
+        final BeanWrapper src = new BeanWrapperImpl(source);
+        java.beans.PropertyDescriptor[] pds = src.getPropertyDescriptors();
+
+        Set<String> emptyNames = new HashSet<String>();
+        for(java.beans.PropertyDescriptor pd : pds) {
+            Object srcValue = src.getPropertyValue(pd.getName());
+            if (srcValue == null) emptyNames.add(pd.getName());
+        }
+        String[] result = new String[emptyNames.size()];
+        return emptyNames.toArray(result);
+    }
+
+
     private boolean isSupervisor(EmployeeProfile supervisor, EmployeeProfile profile) {
+        log.debug("Checking that employee '"+profile.getUsername()+"' is a supervisee of profile '"+supervisor.getUsername()+"'. (# of supervisees in list - "+supervisor.getSupervisees().size()+")");
         for(EmployeeProfile supervisee : supervisor.getSupervisees()){
-            log.debug("Checking equality of profiles "+profile.getId()+" and "+supervisee.getId());
             if(supervisee.equals(profile)) return true;
         }
         return false;
@@ -155,38 +201,5 @@ public class EmployeeService {
         log.debug(msg);
         throw new LoginBadPassword(msg);
     }
-
-    public EmployeeProfile updateEmployee(EmployeeProfile newDetails) throws UserLookupByIdFailed {
-        Optional<EmployeeProfile> profileOptional = employeeRepository.findById(newDetails.getId());
-        EmployeeProfile profile = null;
-        if(profileOptional.isPresent()){
-            profile = profileOptional.get();
-            copyNonNullProperties(newDetails, profile);
-            employeeRepository.save(profile);
-        }else{
-            String msg = "User with id '"+ newDetails.getId() +"' not found in database";
-            log.debug(msg);
-            throw new UserLookupByIdFailed(msg);
-        }
-        return profile;
-    }
-
-
-    // Lovingly copied from https://stackoverflow.com/a/27862208/16800644
-    private static void copyNonNullProperties(Object from, Object to) {
-        BeanUtils.copyProperties(from, to, getNullPropertyNames(from));
-    }
-
-    private static String[] getNullPropertyNames (Object source) {
-        final BeanWrapper src = new BeanWrapperImpl(source);
-        java.beans.PropertyDescriptor[] pds = src.getPropertyDescriptors();
-
-        Set<String> emptyNames = new HashSet<String>();
-        for(java.beans.PropertyDescriptor pd : pds) {
-            Object srcValue = src.getPropertyValue(pd.getName());
-            if (srcValue == null) emptyNames.add(pd.getName());
-        }
-        String[] result = new String[emptyNames.size()];
-        return emptyNames.toArray(result);
-    }
 }
+

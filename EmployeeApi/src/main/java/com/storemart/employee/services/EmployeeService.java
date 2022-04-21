@@ -136,6 +136,18 @@ public class EmployeeService {
         return false;
     }
 
+    public boolean canAddUser(EmployeeProfile requester) {
+        if(log.isDebugEnabled()) {
+            StringBuilder logstr = new StringBuilder("requester has the following permissions: ");
+            for (String permission : requester.getEmployeePermissions()) {
+                logstr.append(permission).append(", ");
+            }
+            log.debug(logstr.toString());
+        }
+
+        return requester.getEmployeePermissions().contains("ADD_EMPLOYEE");
+    }
+
     public EmployeeProfile updateEmployee(EmployeeProfile newDetails) throws UserLookupByIdFailed {
         Optional<EmployeeProfile> profileOptional = employeeRepository.findById(newDetails.getId());
         EmployeeProfile profile = null;
@@ -181,7 +193,6 @@ public class EmployeeService {
         return emptyNames.toArray(result);
     }
 
-
     private boolean isSupervisor(EmployeeProfile supervisor, EmployeeProfile profile) {
         log.debug("Checking that employee '"+profile.getUsername()+"' is a supervisee of profile '"+supervisor.getUsername()+"'. (# of supervisees in list - "+supervisor.getSupervisees().size()+")");
         for(EmployeeProfile supervisee : supervisor.getSupervisees()){
@@ -200,6 +211,14 @@ public class EmployeeService {
         String msg = "Login attempt from user "+username+" not valid (Bad Password)";
         log.debug(msg);
         throw new LoginBadPassword(msg);
+    }
+
+    public void addUser(EmployeeProfile profileToAdd) {
+        employeeRepository.save(profileToAdd);
+    }
+
+    public EmployeeProfile getEmployeeByUsername(String username) {
+        return employeeRepository.findByUsernameIgnoreCase(username);
     }
 }
 

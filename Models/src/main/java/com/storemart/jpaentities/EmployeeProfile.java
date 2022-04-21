@@ -76,12 +76,22 @@ public class EmployeeProfile {
 
     public void addEmployeePermissions(String[] permissionsToAdd) {
         for(String permission : permissionsToAdd){
-            this.addEmployeePermissions(permissionsToAdd);
+            this.addEmployeePermission(permission);
         }
     }
 
 
-    public void addEmployeePermissions(String permissionToAdd) {
+    public void addEmployeePermission(String permissionToAdd) {
         this.employeePermissions.add(permissionToAdd);
+    }
+
+    public void removeEmployeePermissions(String[] permissionsToRemove) {
+        for(String permission : permissionsToRemove){
+            this.removeEmployeePermission(permission);
+        }
+    }
+
+    public void removeEmployeePermission(String permission) {
+        this.employeePermissions.remove(permission);
     }
 }
